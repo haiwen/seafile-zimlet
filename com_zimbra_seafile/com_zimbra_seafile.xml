@@ -1,0 +1,8 @@
+<zimlet name="com_zimbra_seafile" version="0.1" description="Zimbra seafile plugins">
+	<include>com_zimbra_seafile.js</include>
+	<include>templates/Tab.template.js</include>
+	<handlerObject>com_zimbra_seafile_HandlerObject</handlerObject>
+	<dragSource type="ZmConv" />
+	<dragSource type="ZmMailMsg" />
+</zimlet>
+	
