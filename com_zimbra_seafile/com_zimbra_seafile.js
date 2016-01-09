@@ -4,16 +4,16 @@
  */
 
 function com_zimbra_seafile_HandlerObject() {
+    com_zimbra_seafile_HandlerObject.settings = {};
 }
-
-var SeaFile = com_zimbra_seafile_HandlerObject;
 
 /**
  * Makes the Zimlet class a subclass of ZmZimletBase.
  *
  */
-SeaFile.prototype = new ZmZimletBase();
-SeaFile.prototype.constructor = com_zimbra_seafile_HandlerObject;
+com_zimbra_seafile_HandlerObject.prototype = new ZmZimletBase();
+com_zimbra_seafile_HandlerObject.prototype.constructor = com_zimbra_seafile_HandlerObject;
+var SeaFile = com_zimbra_seafile_HandlerObject;
 
 /**
 * This method gets called by the Zimlet framework when the zimlet loads.
@@ -21,9 +21,15 @@ SeaFile.prototype.constructor = com_zimbra_seafile_HandlerObject;
 */
 SeaFile.prototype.init =
 function() {
+    console.log("|this| context in init: ");
+    console.log(this);
+    console.log('------------------');
 
-	this._simpleAppName = this.createApp("SeaFile", "zimbraIcon", "Connect you SeaFile profile");
-	//this.doDrop();
+    com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
+    com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
+
+    this._simpleAppName = this.createApp("SeaFile", "zimbraIcon", "Connect you SeaFile profile");
+    //this.doDrop();
 	
 };
 
@@ -36,6 +42,7 @@ function createCookie(name,value,days) {
     else var expires = "";
     document.cookie = name+"="+value+expires+"; path=/";
 }
+
 function readCookie(name) {
     var nameEQ = name + "=";
     var ca = document.cookie.split(';');
@@ -86,64 +93,6 @@ function listFiles(){
 };
 
 
-SeaFile.login = function(data){
-	
-	/*
-		curl -d "username=username@example.com&password=123456" https://cloud.seafile.com/api2/auth-token/
-		curl -d "username=ahmetkucuk4@gmail.com&password=123" http://192.168.122.30:8000/api2/auth-token/
-	*/
-
-	$( "#sea_login" ).submit(function( event ){
-
-	  	//alert( $( this ).serialize()+"" 
-
-	  	console.log("sea_login run");
-	  	var user_name="";
-	  	var password="";
-	  	var token = "abcdef123456789";
-
-	  	//alert( JSON.stringify($(this).serializeArray()) );
-	 	event.preventDefault();
-
-		jQuery.each($(this).serializeArray(), function(index, value) {
-		       //console.log(" > " + this);
-		       if(this.name+"" == "names"){
-		       		user_name = this.value; 
-		       		console.log("username:"+user_name);
-		       }else if(this.name+"" == "password"){
-					password = this.value; 
-					console.log("password:"+password);
-		       }
-		});
-
-		if(user_name == "ahmet" && password == "123"){
-			//alert("Giris Basarili");
-			console.log(" > Login success");
-			createCookie('seafile_token',token,1);
-			this._dismissBtnListener();
-		}
-
-		/*
-		$.ajax({
-			
-			url:"https://192.168.122.30:5050/api2/auth-token/",
-			type: 'POST',
-			dataType:'json',
-			data: data,	
-			contentType: 'application/json',
-			success: function (data) {
-				appCtxt.cacheSet("SeaFileToken", data.token);
-  				alert("Success Login >"+JSON.stringify(data));
-			},error: function(data){
-			    alert("Cannot get data > "+JSON.stringify(data));
-			}
-		});
-		*/
-
-	});
-
-}
-
 SeaFile.prototype.initializeAttachPopup =
 function(menu, controller) {
 	var mi = controller._createAttachMenuItem(menu, "SeaFile",
@@ -153,50 +102,65 @@ function(menu, controller) {
 
 SeaFile.prototype.showSeaFileChooser=
 function() {
+        // if (this.pbDialog) { //if zimlet dialog already exists...
+	// 	this.pbDialog.popup(); //simply popup the dialog
+	// 	return;
+	// }
 
 	var SeaFileToken = readCookie("seafile_token");
-	console.log("Seafile Token Cookie > "+SeaFileToken);
-
-	if (this.pbDialog) { //if zimlet dialog already exists...
-		this.pbDialog.popup(); //simply popup the dialog
-		return;
-	}
-
-	if(SeaFileToken == null)
+        console.log("Seafile Token Cookie > "+SeaFileToken);
+        if(SeaFileToken == null)
 	{
+            var sDialogTitle = "SeaFile";
+	    var sStatusMsg = "Login";
+	    
+	    this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
+	    this.pView.setSize("250", "150"); // set width and height
+	    this.pView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
+	    this.pView.getHtmlElement().innerHTML = this._createDialogLoginView(); // insert html to the dialogbox
 
-		var sDialogTitle = "SeaFile";
-		var sStatusMsg = "Login";
-		
-		this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
-		this.pView.setSize("250", "150"); // set width and height
-		this.pView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
-		this.pView.getHtmlElement().innerHTML = this._createDialogLoginView(); // insert html to the dialogbox
+            var loginButtonId = Dwt.getNextId();
+            var loginButton = new DwtDialog_ButtonDescriptor(
+                loginButtonId, "Login", DwtDialog.ALIGN_CENTER);
 
-		// pass the title, view & buttons information to create dialog box
-		this.pbDialog = new ZmDialog({title:sDialogTitle, view:this.pView, parent:this.getShell(), standardButtons:[DwtDialog.DISMISS_BUTTON]});
-		this.pbDialog.setButtonListener(DwtDialog.DISMISS_BUTTON, new AjxListener(this, this._dismissBtnListener)); 
-		this.pbDialog.popup(); //show the dialog
-		appCtxt.getAppController().setStatusMsg(sStatusMsg);
-	
-	}else{
+            var dialog_args = {
+                title	: sDialogTitle,
+		view	: this.pView,
+                parent	: this.getShell(),
+                standardButtons : [DwtDialog.DISMISS_BUTTON],
+                extraButtons : [loginButton]
+            }
 
-		var sDialogTitle = "SeaFile";
-		var sStatusMsg = "Add File";
-		var data = listFiles();
+	    // pass the title, view & buttons information to create dialog box
+            this.pbDialog = new ZmDialog(dialog_args);
+            this.pbDialog.setButtonListener(
+                DwtDialog.DISMISS_BUTTON,
+                new AjxListener(this, this._dismissBtnListener));
+            this.pbDialog.setButtonListener(
+                loginButtonId,
+                new AjxListener(this, this._loginBtnListener));
 
-		this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
-		this.pView.setSize("250", "150"); // set width and height
-		this.pView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
-		this.pView.getHtmlElement().innerHTML = "<a href='#' class='AttLink' style='text-decoration:underline;' " +
-					"onClick=\"SeaFile.saveShare('" + data.files[0].name + "','" + data.files[0].share + "')\">"+
-					data.files[0].name +
-					"</a>";
+	    this.pbDialog.popup(); //show the dialog
+            appCtxt.getAppController().setStatusMsg(sStatusMsg);
 
-		this.pbDialog = new ZmDialog({title:sDialogTitle, view:this.pView, parent:this.getShell(), standardButtons:[DwtDialog.DISMISS_BUTTON]});
-		this.pbDialog.setButtonListener(DwtDialog.DISMISS_BUTTON, new AjxListener(this, this._dismissBtnListener)); 
-		this.pbDialog.popup(); //show the dialog
-		appCtxt.getAppController().setStatusMsg(sStatusMsg);		
+        }else{
+
+            var sDialogTitle = "SeaFile";
+	    var sStatusMsg = "Add File";
+	    var data = listFiles();
+
+	    this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
+	    this.pView.setSize("250", "150"); // set width and height
+	    this.pView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
+	    this.pView.getHtmlElement().innerHTML = "<a href='#' class='AttLink' style='text-decoration:underline;' " +
+		"onClick=\"SeaFile.saveShare('" + data.files[0].name + "','" + data.files[0].share + "')\">"+
+		data.files[0].name +
+		"</a>";
+
+	    this.pbDialog = new ZmDialog({title:sDialogTitle, view:this.pView, parent:this.getShell(), standardButtons:[DwtDialog.DISMISS_BUTTON]});
+	    this.pbDialog.setButtonListener(DwtDialog.DISMISS_BUTTON, new AjxListener(this, this._dismissBtnListener)); 
+	    this.pbDialog.popup(); //show the dialog
+            appCtxt.getAppController().setStatusMsg(sStatusMsg);
 	}
 
 };
@@ -215,22 +179,61 @@ function(name,share){
 
 };
 
-
+/**
+ * Creates the login dialog view.
+ * 
+ */
 SeaFile.prototype._createDialogLoginView =
 function() {
-	var html = AjxTemplate.expand("com_zimbra_seafile.templates.Tab#Main");		
+        var html = AjxTemplate.expand("com_zimbra_seafile.templates.Tab#LoginDlgTmpl");
 	return html;
+};
+
+/**
+ * The "login" button listener.
+ * 
+*/
+SeaFile.prototype._loginBtnListener =
+function() {
+    var user_name="";
+    var password="";
+    var token = "";
+    var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+    var seafile_token_url = seafile_service_url + '/api2/auth-token/';
+    var seafile_zimlet = this;
+
+    username = jQuery.trim(jQuery('#seafile_login_dlg_username').val());
+    password = jQuery.trim(jQuery('#seafile_login_dlg_password').val());
+    if (!username || !password) {
+        alert('username or password is missing')
+        return false;
+    }
+
+    jQuery.ajax({
+        url: seafile_token_url,
+        type: 'POST',
+        dataType: 'json',
+        data: {username: username, password: password},
+        success: function(data) {
+            createCookie('seafile_token', data.token, 1);
+            // close login dialog and show files chooser dialog
+            seafile_zimlet.pbDialog.popdown();
+            seafile_zimlet.showSeaFileChooser();
+        },
+        error: function(xhr, textStatus, errorThrown) {
+            alert('login failed.');
+            console.log(xhr.responseText);
+        }
+    });
 };
 
 /**
  * The "DISMISS" button listener.
  * 
 */
-
 SeaFile.prototype._dismissBtnListener =
 function() {
-		
-	this.pbDialog.popdown(); //hide the dialog
+        this.pbDialog.popdown(); //hide the dialog
 
 };
 

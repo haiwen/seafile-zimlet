@@ -11,3 +11,26 @@
 		
 	</table>
 </template>
+<template id="LoginDlgTmpl">
+    <table cellpadding="2" cellspacing="0" border="0" width="100%">
+        <tr>
+            <td colspan="2"> </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Email:</b>
+            </td>
+            <td>
+                <input type="text" id="seafile_login_dlg_username" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b>Password:</b>
+            </td>
+            <td>
+                <input type="password" id="seafile_login_dlg_password" />
+            </td>
+        </tr>
+    </table>
+</template>
