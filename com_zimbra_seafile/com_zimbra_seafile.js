@@ -21,14 +21,10 @@ var SeaFile = com_zimbra_seafile_HandlerObject;
 */
 SeaFile.prototype.init =
 function() {
-    console.log("|this| context in init: ");
-    console.log(this);
-    console.log('------------------');
-
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
 
-    this._simpleAppName = this.createApp("SeaFile", "zimbraIcon", "Connect you SeaFile profile");
+    this._simpleAppName = this.createApp("Seafile", "zimbraIcon", "Connect you Seafile profile");
     //this.doDrop();
 	
 };
@@ -59,46 +55,11 @@ SeaFile.eraseCookie = function (name) {
 }
 
 
-function listFiles(){
-
-	var text = '{ "files" : [' +	
-	'{ "name":"file1" , "share":"http://asd1.com" },' +
-	'{ "name":"file2" , "share":"http://asd2.com" },' +
-	'{ "name":"file3" , "share":"http://asd3.com" } ]}';
-
-	var obj = JSON.parse(text);
-/*
-	$.ajax
-	({
-		type: "GET",
-		url: "https://192.168.122.30:5050/api2/shared-links/",
-		dataType: 'json',
-		async: false,
-		contentType: 'application/json',
-		headers: {
-		  "Authorization": "Token " + SeaFileToken,
-		   'X-Auth-Token' :  "Token " + SeaFileToken,
-		},
-		success: function (success){
-			data = success;
-		    alert('Listeleniyor'); 
-		},error: function(data){
-			alert("Cannot get data > "+JSON.stringify(data));
-		}
-
-	});
-*/
-	return obj;
-
-};
-
-
 SeaFile.prototype.initializeAttachPopup =
 function(menu, controller) {
-	var mi = controller._createAttachMenuItem(menu, "SeaFile",
+        var mi = controller._createAttachMenuItem(menu, "Seafile",
 			new AjxListener(this, this.showSeaFileChooser));
 };
-
 
 SeaFile.prototype.showSeaFileChooser=
 function() {
@@ -144,40 +105,86 @@ function() {
             appCtxt.getAppController().setStatusMsg(sStatusMsg);
 
         }else{
-
             var sDialogTitle = "SeaFile";
-	    var sStatusMsg = "Add File";
-	    var data = listFiles();
+            var sStatusMsg = "Add File";
+            var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+            var seafile_libraries_url = seafile_service_url + '/api2/repos/';
+            var seafile_zimlet = this;
 
-	    this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
-	    this.pView.setSize("250", "150"); // set width and height
-	    this.pView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
-	    this.pView.getHtmlElement().innerHTML = "<a href='#' class='AttLink' style='text-decoration:underline;' " +
-		"onClick=\"SeaFile.saveShare('" + data.files[0].name + "','" + data.files[0].share + "')\">"+
-		data.files[0].name +
-		"</a>";
+            jQuery.ajax({       // list libraries
+                url: seafile_libraries_url,
+                type: 'GET',
+                dataType: 'json',
+                beforeSend: function (request) {
+                    request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                },
+                success: function(data) {
+                    seafile_zimlet.pView = new DwtComposite(seafile_zimlet.getShell()); //creates an empty div as a child of main shell div
+                    seafile_zimlet.pView.setSize("400px", "300px"); // set width and height
+                    seafile_zimlet.pView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
 
-	    this.pbDialog = new ZmDialog({title:sDialogTitle, view:this.pView, parent:this.getShell(), standardButtons:[DwtDialog.DISMISS_BUTTON]});
-	    this.pbDialog.setButtonListener(DwtDialog.DISMISS_BUTTON, new AjxListener(this, this._dismissBtnListener)); 
-	    this.pbDialog.popup(); //show the dialog
-            appCtxt.getAppController().setStatusMsg(sStatusMsg);
-	}
+                    jQuery.each(data, function(idx, val) {
+                        if (val.type == 'repo') {
+                            // only list owned repos
+                            seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><span><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" +
+                                val.name + "</a></span></div>";
+                        }
+                    });
+
+                    jQuery('.js-seafile-lib').click(function() {
+                        var repo_id = jQuery(this).data('rid');
+                        var seafile_dirs_url = seafile_service_url + '/api2/repos/' + repo_id + '/dir/';
+
+                        jQuery.ajax({ // list dir entries
+                            url: seafile_dirs_url,
+                            type: 'GET',
+                            dataType: 'json',
+                            beforeSend: function (request) {
+                                request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                            },
+                            success: function(data) {
+                                seafile_zimlet.pView.getHtmlElement().innerHTML = "";
+                                jQuery.each(data, function(idx, val) {
+                                    if (val.type == 'file') {
+                                        seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><input type=\"checkbox\" class=\"js-seafile-file\" data-rid='" + repo_id + "' data-path='/" + val.name + "'><span>" + val.name + "</span></div>";
+                                    } else {
+                                        seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><span><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" +
+                                            val.name + "</a></span></div>";
+                                    }
+
+                                });
+
+                            },
+                            error: function(xhr, textStatus, errorThrown) {
+                                alert('List seafile dir failed.');
+                                console.log(xhr.responseText);
+                            }
+                        });
+
+                    });
+
+                    var attachButtonId = Dwt.getNextId();
+                    var attachButton = new DwtDialog_ButtonDescriptor(
+                        attachButtonId, "Attach", DwtDialog.ALIGN_RIGHT);
+                    
+                    seafile_zimlet.pbDialog = new ZmDialog({title:sDialogTitle, view:seafile_zimlet.pView, parent:seafile_zimlet.getShell(), standardButtons:[DwtDialog.DISMISS_BUTTON], extraButtons:[attachButton], disposeOnPopDown:true});
+                    seafile_zimlet.pbDialog.setButtonListener(DwtDialog.DISMISS_BUTTON, new AjxListener(seafile_zimlet, seafile_zimlet._dismissBtnListener));
+                    seafile_zimlet.pbDialog.setButtonListener(attachButtonId, new AjxListener(seafile_zimlet, seafile_zimlet._attachBtnListener));
+                    
+	            seafile_zimlet.pbDialog.popup(); //show the dialog
+                    appCtxt.getAppController().setStatusMsg(sStatusMsg);
+                    
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    alert('List seafile libraries failed.');
+                    console.log(xhr.responseText);
+                }
+            });
+
+        }
 
 };
 
-
-SeaFile.saveShare = 
-function(name,share){
-
-/*
-  var composeView = appCtxt.getCurrentView();   
-  composeView.getHtmlEditor().setContent('');    
-  
-*/
-  var composeView = appCtxt.getCurrentView();   
-  composeView.getHtmlEditor().setContent(composeView.getHtmlEditor().getContent()+"</br>"+name+"" +" : "+"<a href='"+share+"'>"+share+"</a>"+"</br>");   
-
-};
 
 /**
  * Creates the login dialog view.
@@ -226,6 +233,59 @@ function() {
         }
     });
 };
+
+/**
+ * The "attach" button listener.
+ * 
+*/
+SeaFile.prototype._attachBtnListener =
+function() {
+    var seafile_zimlet = this;
+
+    jQuery('.js-seafile-file:checked').each(function(idx, val) {
+        var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+        var repo_id = $(val).data('rid');
+        var path = $(val).data('path');
+
+        var seafile_share_link_url = seafile_service_url + '/api2/repos/' + repo_id + '/file/shared-link/';
+
+        jQuery.ajax({           // get or create file shared link
+            url: seafile_share_link_url,
+            type: 'PUT',
+            dataType: 'json',
+            data: "p=" + path,
+            beforeSend: function (request) {
+                request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+            },
+            success: function(data, textStatus, jqXHR) {
+                // get shared link from location header first,
+                var shared_link = jqXHR.getResponseHeader('Location');
+                if (!shared_link) {
+                    // get shared link from response obj
+                    var shared_link = data.shared_link;
+                    if (!shared_link) {
+                        alert('TODO: no shared link url found in response');
+                        return false;
+                    }
+                }
+
+                console.log('shared_link:' + shared_link);
+                var composeView = appCtxt.getCurrentView();
+                composeView.getHtmlEditor().setContent(composeView.getHtmlEditor().getContent()+"</br>"+path.substr(path.lastIndexOf('/') + 1)+"" +" : "+"<a href='"+shared_link+"'>"+shared_link+"</a>"+"</br>");
+
+                seafile_zimlet.pbDialog.popdown();
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                alert('Get share link failed.');
+                console.log('err');
+                console.log(xhr);
+                console.log(textStatus);
+                console.log(errorThrown);
+            }
+        });
+
+    });
+}
 
 /**
  * The "DISMISS" button listener.
