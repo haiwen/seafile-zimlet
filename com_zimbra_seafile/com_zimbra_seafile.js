@@ -24,7 +24,7 @@ function() {
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
 
-    this._simpleAppName = this.createApp("Seafile", "zimbraIcon", "Connect you Seafile profile");
+    // this._simpleAppName = this.createApp("Seafile", "zimbraIcon", "Connect you Seafile profile");
     //this.doDrop();
 	
 };
