@@ -126,7 +126,7 @@ function() {
                     jQuery.each(data, function(idx, val) {
                         if (val.type == 'repo') {
                             // only list owned repos
-                            seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><span><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" +
+                            seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><span><img src=\"/service/zimlet/_dev/com_zimbra_seafile/lib.png\"><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" +
                                 val.name + "</a></span></div>";
                         }
                     });
@@ -148,7 +148,7 @@ function() {
                                     if (val.type == 'file') {
                                         seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><input type=\"checkbox\" class=\"js-seafile-file\" data-rid='" + repo_id + "' data-path='/" + val.name + "'><span>" + val.name + "</span></div>";
                                     } else {
-                                        seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><span><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" +
+                                        seafile_zimlet.pView.getHtmlElement().innerHTML += "<div><span><img src=\"/service/zimlet/_dev/com_zimbra_seafile/folder.png\"><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" +
                                             val.name + "</a></span></div>";
                                     }
 
