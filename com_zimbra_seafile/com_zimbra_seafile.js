@@ -1,5 +1,5 @@
 /* 
- *   Zimbra SeaFile
+ *   Zimbra Seafile
  *   Copyright (C) 2016 
  */
 
@@ -13,13 +13,13 @@ function com_zimbra_seafile_HandlerObject() {
  */
 com_zimbra_seafile_HandlerObject.prototype = new ZmZimletBase();
 com_zimbra_seafile_HandlerObject.prototype.constructor = com_zimbra_seafile_HandlerObject;
-var SeaFile = com_zimbra_seafile_HandlerObject;
+var SeafileZimlet = com_zimbra_seafile_HandlerObject;
 
 /**
 * This method gets called by the Zimlet framework when the zimlet loads.
 *  
 */
-SeaFile.prototype.init =
+SeafileZimlet.prototype.init =
 function() {
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
@@ -50,29 +50,29 @@ function readCookie(name) {
     return null;
 }
 
-SeaFile.eraseCookie = function (name) {
+SeafileZimlet.eraseCookie = function (name) {
     createCookie(name,"",-1);
 }
 
 
-SeaFile.prototype.initializeAttachPopup =
+SeafileZimlet.prototype.initializeAttachPopup =
 function(menu, controller) {
         var mi = controller._createAttachMenuItem(menu, "Seafile",
-			new AjxListener(this, this.showSeaFileChooser));
+                        new AjxListener(this, this.showSeafileChooser));
 };
 
-SeaFile.prototype.showSeaFileChooser=
+SeafileZimlet.prototype.showSeafileChooser=
 function() {
         // if (this.pbDialog) { //if zimlet dialog already exists...
 	// 	this.pbDialog.popup(); //simply popup the dialog
 	// 	return;
 	// }
 
-	var SeaFileToken = readCookie("seafile_token");
-        console.log("Seafile Token Cookie > "+SeaFileToken);
-        if(SeaFileToken == null)
+	var SeafileToken = readCookie("seafile_token");
+        console.log("Seafile Token Cookie > "+SeafileToken);
+        if(SeafileToken == null)
 	{
-            var sDialogTitle = "SeaFile";
+            var sDialogTitle = "Seafile";
 	    var sStatusMsg = "Login";
 	    
 	    this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
@@ -105,7 +105,7 @@ function() {
             appCtxt.getAppController().setStatusMsg(sStatusMsg);
 
         }else{
-            var sDialogTitle = "SeaFile";
+            var sDialogTitle = "Seafile";
             var sStatusMsg = "Add File";
             var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
             var seafile_libraries_url = seafile_service_url + '/api2/repos/';
@@ -190,7 +190,7 @@ function() {
  * Creates the login dialog view.
  * 
  */
-SeaFile.prototype._createDialogLoginView =
+SeafileZimlet.prototype._createDialogLoginView =
 function() {
         var html = AjxTemplate.expand("com_zimbra_seafile.templates.Tab#LoginDlgTmpl");
 	return html;
@@ -200,7 +200,7 @@ function() {
  * The "login" button listener.
  * 
 */
-SeaFile.prototype._loginBtnListener =
+SeafileZimlet.prototype._loginBtnListener =
 function() {
     var user_name="";
     var password="";
@@ -225,7 +225,7 @@ function() {
             createCookie('seafile_token', data.token, 1);
             // close login dialog and show files chooser dialog
             seafile_zimlet.pbDialog.popdown();
-            seafile_zimlet.showSeaFileChooser();
+            seafile_zimlet.showSeafileChooser();
         },
         error: function(xhr, textStatus, errorThrown) {
             alert('login failed.');
@@ -238,7 +238,7 @@ function() {
  * The "attach" button listener.
  * 
 */
-SeaFile.prototype._attachBtnListener =
+SeafileZimlet.prototype._attachBtnListener =
 function() {
     var seafile_zimlet = this;
 
@@ -291,13 +291,13 @@ function() {
  * The "DISMISS" button listener.
  * 
 */
-SeaFile.prototype._dismissBtnListener =
+SeafileZimlet.prototype._dismissBtnListener =
 function() {
         this.pbDialog.popdown(); //hide the dialog
 
 };
 
-SeaFile.prototype.appActive =
+SeafileZimlet.prototype.appActive =
 function(appName, active) {
 	
 	switch (appName) {
@@ -317,7 +317,7 @@ function(appName, active) {
  * @param	{String}	appName		the application name		
  */
 
-SeaFile.prototype.appLaunch =
+SeafileZimlet.prototype.appLaunch =
 function(appName){
 	switch (appName) {
 		case this._simpleAppName: {
@@ -336,7 +336,7 @@ function(appName){
  * @return	{String}	the tab HTML content
  */
 
-SeaFile.prototype._createTabView =
+SeafileZimlet.prototype._createTabView =
 function() {
 	return	AjxTemplate.expand("com_zimbra_seafile.templates.Tab#Main");		
 };
