@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zimletConfig name="com_zimbra_seafile" version="1.0">
+    <global>
+        <property name="seafile_service_url">https://192.168.1.106</property>
+    </global>
+</zimletConfig>
+

@@ -8,7 +8,7 @@
 
 3. Refresh page, there should be "Seafile" option in "Attach" menu on mail compose page.
 
-**Note**: If your `seafile_service_url` and Zimbra Web Collaboration Suite url are not in the same domain, please enable CORS in your web server.
+**Note**: If your `seafile_service_url` and Zimbra Web Collaboration Suite url are not in the same domain, you may encounter cross domain issue, please enable CORS in your web server.
 
 ### Production
 
