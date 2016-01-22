@@ -54,6 +54,13 @@ SeafileZimlet.eraseCookie = function (name) {
     createCookie(name,"",-1);
 }
 
+function HTMLescape(html) {
+    return document.createElement('div')
+        .appendChild(document.createTextNode(html))
+        .parentNode
+        .innerHTML;
+}
+
 
 SeafileZimlet.prototype.initializeAttachPopup =
 function(menu, controller) {
@@ -204,7 +211,7 @@ function() {
 
     var selected_files = [];
     var $fileTreeContainer = $(seafile_zimlet.pView.getHtmlElement());
-    $('[name="selected"][checked="checked"]').each(function(index, item) {
+    $('[name="selected"][checked="checked"]', $fileTreeContainer).each(function(index, item) {
         var val =  $(item).val(); // repo_id + path
         if (val.charAt(val.length - 1) != '/') {
             selected_files.push(val);
@@ -230,7 +237,9 @@ function() {
                 var shared_link = jqXHR.getResponseHeader('Location');
 
                 var composeView = appCtxt.getCurrentView();
-                composeView.getHtmlEditor().setContent(composeView.getHtmlEditor().getContent() + '<br />' + path.substr(path.lastIndexOf('/') + 1) + ' : ' + '<a href="' + shared_link + '">' + shared_link + '</a><br />');
+                var filename = HTMLescape(path.substr(path.lastIndexOf('/') + 1));
+                var attached_item = '<p>' + filename + ': ' + '<a href="' + shared_link + '">' + shared_link + '</a></p>';
+                composeView.getHtmlEditor().setContent(composeView.getHtmlEditor().getContent() + attached_item);
 
                 seafile_zimlet.pbDialog.popdown();
             },
