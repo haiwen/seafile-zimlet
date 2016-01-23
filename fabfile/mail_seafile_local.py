@@ -37,3 +37,12 @@ def deploy(zimlet_name, dev='yes', restart='yes'):
 
     if restart.startswith('y'):
             sudo('/opt/zimbra/bin/zmmailboxdctl restart', user='zimbra')
+
+
+@task
+def dist(zimlet_name):
+    """Usage: fab dist helloworld
+    """
+    dist_path = './dist/'
+    local("rm -rf %s%s.zip" % (dist_path, zimlet_name))
+    local("cd %s && rm -rf *~ && zip -r %s * && mv %s.zip ../%s && cd .." % (zimlet_name, zimlet_name, zimlet_name, dist_path))
