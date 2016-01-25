@@ -1,0 +1,68 @@
+## Configure Seafile Proxy
+
+Enable CORS in Nginx/Apache if Seafile service and Zimbra Web Collaboration Suite are not in the same origin.
+
+Here is a sample configuration for Nginx:
+
+sites-enabled/seafile-fastcgi.conf
+```
+   location / {
+     if ($request_method = 'OPTIONS') {
+        add_header 'Access-Control-Allow-Origin' '*';
+        #
+        # Om nom nom cookies
+        #
+        add_header 'Access-Control-Allow-Credentials' 'true';
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS';
+        #
+        # Custom headers and headers various browsers *should* be OK with but aren't
+        #
+        add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+        #
+        # Tell client that this pre-flight info is valid for 20 days
+        #
+        add_header 'Access-Control-Max-Age' 1728000;
+        add_header 'Content-Type' 'text/plain charset=UTF-8';
+        add_header 'Content-Length' 0;
+        return 204;
+     }
+     if ($request_method = 'POST') {
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Allow-Credentials' 'true';
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS';
+        add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+        add_header 'Access-Control-Expose-Headers' 'Location';
+     }
+     if ($request_method = 'GET') {
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Allow-Credentials' 'true';
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS';
+        add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+        add_header 'Access-Control-Expose-Headers' 'Location';
+     }
+     if ($request_method = 'PUT') {
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Allow-Credentials' 'true';
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS';
+        add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+        add_header 'Access-Control-Expose-Headers' 'Location';
+     }
+
+     fastcgi_pass    127.0.0.1:8000;
+     ....
+
+```
+
+## Install Zimlet
+
+Before installation, you need to extract config_template.xml from com_zimbra_seafile.zip. And change the value of "seafile_service_url" for your Seafile server url. Then re-zip those files by: zip -r com_zimbra_seafile *
+
+Steps to deploy seafile zimplet are pretty standard:
+
+1. Copy the zip file to the /opt/zimbra/zimlet directory.
+2. Type the following command: zmzimletctl deploy com_zimbra_seafile.zip
+3. Restart Zimbra webapp by: /opt/zimbra/bin/zmmailboxdctl restart
+
+For details, please refer to https://wiki.zimbra.com/wiki/Zimlets,_Setting_Up
+
+After that, you should be able to attach files in Seafile server as shared link during composing.

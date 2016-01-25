@@ -1,16 +1,3 @@
-<template id="Main">
-	<table cellpadding="2" cellspacing="10" border="1" width="100%">
-		<tr>
-			<td colspan="2">
-<h1><span>Lorem Ipsum</span></h1>
-			</td>
-		</tr>
-		<tr>
-			<td colspan="2">&nbsp;</td>
-		</tr>
-		
-	</table>
-</template>
 <template id="LoginDlgTmpl">
     <form id="seafile-login-form">
         <label class="seafile-login-label">Email:</label>
