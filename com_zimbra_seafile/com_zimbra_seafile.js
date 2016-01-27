@@ -152,7 +152,7 @@ function(name,url){
                         seafile_upload_url_post = seafile_upload_url_post.replace("http","https").replace("8082","8182");
                         var fd = new FormData();
                         fd.append('filename', name);
-                        fd.append('file', xmlHttp.response);
+                        fd.append('file', xmlHttp.response, name);
                         fd.append('parent_dir','/');
 
                         jQuery.ajax({
