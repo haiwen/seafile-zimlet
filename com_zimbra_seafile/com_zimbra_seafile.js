@@ -153,6 +153,7 @@ function(name,url){
                         var fd = new FormData();
                         fd.append('filename', name);
                         fd.append('file', xmlHttp.response);
+                        fd.append('parent_dir','/');
 
                         jQuery.ajax({
                             url: seafile_upload_url_post, 
