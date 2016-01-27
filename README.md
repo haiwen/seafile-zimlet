@@ -66,4 +66,65 @@ sites-enabled/seafile-fastcgi.conf
      ....
 
 ```
+### You need to redirect http 8082 to https 8182 to save attachment to Seafile (only used in develop)
 
+
+sites-enabled/seafile-upload.conf
+```
+   server{
+       listen 8182;
+       ssl on;
+       ssl_certificate /etc/nginx/ssl/cacert.pem;         # path to your cacert.pem
+       ssl_certificate_key /etc/nginx/ssl/privkey.pem;    # path to your privkey.pem
+
+       location / {
+         if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            #
+            # Om nom nom cookies
+            #
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            #
+            # Custom headers and headers various browsers *should* be OK with but aren't
+            #
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+            #
+            # Tell client that this pre-flight info is valid for 20 days
+            #
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' 0;
+            return 204;
+         }
+         if ($request_method = 'POST') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+            add_header 'Access-Control-Expose-Headers' 'Location';
+         }
+         if ($request_method = 'GET') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+            add_header 'Access-Control-Expose-Headers' 'Location';
+         }
+         if ($request_method = 'PUT') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+            add_header 'Access-Control-Expose-Headers' 'Location';
+         }
+
+         proxy_pass          http://127.0.0.1:8082;
+         proxy_buffer_size   128k;
+         proxy_buffers       4 256k;
+         proxy_busy_buffers_size   256k;
+       }
+    }
+    ....
+
+```
