@@ -148,13 +148,18 @@ function(name,url){
                     success: function(data) {
 
                         var seafile_upload_url_post = data;
-                        seafile_upload_url_post = seafile_upload_url_post.replace("http","https").replace("8082","8182"); 
+                        // Below code added to fix http-https mixed content error
+                        seafile_upload_url_post = seafile_upload_url_post.replace("http","https").replace("8082","8182");
+                        var fd = new FormData();
+                        fd.append('filename', name);
+                        fd.append('file', xmlHttp.response);
 
-                         jQuery.ajax({
+                        jQuery.ajax({
                             url: seafile_upload_url_post, 
                             type: 'POST',
-                            dataType: 'json',
-                            data: {file: xmlHttp.response,filename:name},
+                            processData: false,
+                            contentType: false,
+                            data: fd,
                             beforeSend: function (request) {
                                 request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
                             },
@@ -240,9 +245,9 @@ function() {
         loginButtonId, "Login", DwtDialog.ALIGN_CENTER);
 
         var dialog_args = {
-            title	: sDialogTitle,
-            view	: this.pView,
-            parent	: this.getShell(),
+            title    : sDialogTitle,
+            view    : this.pView,
+            parent    : this.getShell(),
             standardButtons : [DwtDialog.CANCEL_BUTTON],
             extraButtons : [loginButton]
         }
@@ -434,44 +439,44 @@ function() {
 
 SeafileZimlet.prototype.appActive =
 function(appName, active) {
-	
-	switch (appName) {
-		case this._simpleAppName: {
-		
-			var app = appCtxt.getApp(appName); // get access to ZmZimletApp
+    
+    switch (appName) {
+        case this._simpleAppName: {
+        
+            var app = appCtxt.getApp(appName); // get access to ZmZimletApp
 
-			break;
-		}
-	}
-	// do something
+            break;
+        }
+    }
+    // do something
 };
 
 /**
  * This method gets called by the Zimlet framework when the application is opened for the first time.
  *  
- * @param	{String}	appName		the application name		
+ * @param    {String}    appName        the application name        
  */
 
 SeafileZimlet.prototype.appLaunch =
 function(appName){
-	switch (appName) {
-		case this._simpleAppName: {
-			// do something
-			var app = appCtxt.getApp(appName); // get access to ZmZimletApp
-			var content = this._createTabView();
-			app.setContent(content); // write HTML to app
-			break;
-		}
-	}
+    switch (appName) {
+        case this._simpleAppName: {
+            // do something
+            var app = appCtxt.getApp(appName); // get access to ZmZimletApp
+            var content = this._createTabView();
+            app.setContent(content); // write HTML to app
+            break;
+        }
+    }
 };
 
 /**
  * Creates the tab view using the template.
  * 
- * @return	{String}	the tab HTML content
+ * @return    {String}    the tab HTML content
  */
 
 SeafileZimlet.prototype._createTabView =
 function() {
-	return	AjxTemplate.expand("com_zimbra_seafile.templates.Tab#Main");		
+    return    AjxTemplate.expand("com_zimbra_seafile.templates.Tab#Main");        
 };
