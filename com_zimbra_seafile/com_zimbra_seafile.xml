@@ -2,10 +2,10 @@
 	<include>jstree.js</include>
 	<include>file-tree.js</include>
 	<include>com_zimbra_seafile.js</include>
+	<include>mime.js</include>
 	<include>templates/Tab.template.js</include>
 	<includeCSS>seafile.css</includeCSS>
 	<handlerObject>com_zimbra_seafile_HandlerObject</handlerObject>
 	<dragSource type="ZmConv" />
 	<dragSource type="ZmMailMsg" />
 </zimlet>
-	

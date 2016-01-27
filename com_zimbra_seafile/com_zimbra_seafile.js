@@ -17,16 +17,159 @@ var SeafileZimlet = com_zimbra_seafile_HandlerObject;
 
 /**
 * This method gets called by the Zimlet framework when the zimlet loads.
-*  
+*
 */
 SeafileZimlet.prototype.init =
 function() {
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
 
-    // this._simpleAppName = this.createApp("Seafile", "zimbraIcon", "Connect you Seafile profile");
-    //this.doDrop();
-	
+    var SeafileToken = readCookie("seafile_token");
+    if (appCtxt.get(ZmSetting.MAIL_ENABLED) && SeafileToken != null) {
+        AjxPackage.require({name:"MailCore", callback:new AjxCallback(this, this.addAttachmentHandler)});
+    }
+
+};
+
+/**
+* This method adds handler for save Attachment to SeaFile
+*
+*/
+SeafileZimlet.prototype.addAttachmentHandler = function(mime)
+{
+    this._msgController = AjxDispatcher.run("GetMsgController");
+    var viewType = appCtxt.getViewTypeFromId(ZmId.VIEW_MSG);
+    this._msgController._initializeView(viewType);
+
+    //Load 1000 mime-types
+    SeafileZimlet.prototype.mime();
+    SeafileZimlet.mime.forEach(function(mime) 
+    {
+        var MISSMIME = 'SeafileZimlet'+mime.replace("/","_");
+        ZmMimeTable.MISSMIME=mime;
+        ZmMimeTable._table[ZmMimeTable.MISSMIME]={desc:ZmMsg.unknownBinaryType,image:"UnknownDoc",imageLarge:"UnknownDoc_48"};
+    });
+
+    for (var mimeType in ZmMimeTable._table) {
+        this._msgController._listView[viewType].addAttachmentLinkHandler(mimeType,"SeaFile",this.addSeaFileLink);
+    }
+};
+
+/**
+* This method adds button for save Attachment to SeaFile
+*
+*/
+SeafileZimlet.prototype.addSeaFileLink = 
+function(attachment) {
+    var html =
+        "<a href='#' class='AttLink' style='text-decoration:underline;' " +
+        "onClick=\"SeafileZimlet.prototype.saveAttachment('" + attachment.label + "','" + attachment.url + "')\">"+
+        "SeaFile" +
+        "</a>";
+    return html;
+};
+
+/**
+* This method saves Attachment to SeaFile
+*
+*/
+SeafileZimlet.prototype.saveAttachment = 
+function(name,url){
+
+    var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+    var seafile_libraries_url = seafile_service_url + '/api2/repos/';
+    var seafile_zimlet = this;
+    var msg = "<h3>Select your lib.</h3></br>";
+
+    jQuery.ajax({ // list libraries
+        url: seafile_libraries_url,
+        type: 'GET',
+        dataType: 'json',
+
+        beforeSend: function (request) {
+            request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+        },
+
+        success: function(data){
+            jQuery.each(data, function(idx, val) {
+                if (val.type == 'repo') {
+                    // only list owned repos
+                    msg += "<div><span><img src=\"/service/zimlet/_dev/com_zimbra_seafile/lib.png\"><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" + val.name + "</a></span></div>";
+                }
+            });
+
+            this._dialog =  null;
+            var style = DwtMessageDialog.INFO_STYLE; //show info status by default
+
+            var sDialogTitle = "Seafile";
+            var sStatusMsg = "Login";
+            this._dialog = appCtxt.getMsgDialog(); // returns DwtMessageDialog
+
+            // set the button close
+            this._dialog.setButtonListener(DwtDialog.OK_BUTTON, new AjxListener(this, SeafileZimlet.prototype._okBtnListener));       
+
+            this._dialog.reset(); // reset dialog
+            this._dialog.setMessage(msg, style);
+            this._dialog.popup();
+
+
+            jQuery('.js-seafile-lib').click(function() {
+                var repo_id = jQuery(this).data('rid');
+                var seafile_uploads_url = seafile_service_url + '/api2/repos/' + repo_id + '/upload-link/';
+
+                var xmlHttp = null;   
+                xmlHttp = new XMLHttpRequest();
+                xmlHttp.open( "GET", url, true );        
+                xmlHttp.responseType = "blob";
+                xmlHttp.send( null );
+
+                jQuery.ajax({ 
+                    url: seafile_uploads_url,
+                    type: 'GET',
+                    dataType: 'json',
+                    beforeSend: function (request) {
+                        request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                    },
+                    success: function(data) {
+
+                        var seafile_upload_url_post = data;
+                        seafile_upload_url_post = seafile_upload_url_post.replace("http","https").replace("8082","8182"); 
+
+                         jQuery.ajax({
+                            url: seafile_upload_url_post, 
+                            type: 'POST',
+                            dataType: 'json',
+                            data: {file: xmlHttp.response,filename:name},
+                            beforeSend: function (request) {
+                                request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                            },
+                            success: function(data) {
+                                console.log("UPLOAD SUCCESS");
+                            },
+                            error: function(response) {
+                                alert('Unexpected Error');
+                                console.log("Hata : "+JSON.stringify(response));
+                            }
+                        });
+                    },
+                    error: function(xhr, textStatus, errorThrown) {
+                        alert('List seafile dir failed.');
+                        console.log(xhr.responseText);
+                    }
+                });
+
+            });
+        },
+            error: function(xhr, textStatus, errorThrown) {
+                alert('List seafile libraries failed.');
+                console.log(xhr.responseText);
+            }
+        });
+}
+
+SeafileZimlet.prototype._okBtnListener = 
+function(obj) {
+    this._dialog.popdown(); // close the dialog
 };
 
 function createCookie(name,value,days) {
@@ -45,7 +188,7 @@ function readCookie(name) {
     for(var i=0;i < ca.length;i++) {
         var c = ca[i];
         while (c.charAt(0)==' ') c = c.substring(1,c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
     }
     return null;
 }
@@ -73,13 +216,13 @@ function() {
     var SeafileToken = readCookie("seafile_token");
     if (SeafileToken == null) { // show login popup
         var sDialogTitle = "Login to Seafile";
-	    
+
         this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
         this.pView.getHtmlElement().innerHTML = this._createDialogLoginView(); // insert html to the dialogbox
 
         var loginButtonId = Dwt.getNextId();
         var loginButton = new DwtDialog_ButtonDescriptor(
-                loginButtonId, "Login", DwtDialog.ALIGN_RIGHT);
+        loginButtonId, "Login", DwtDialog.ALIGN_CENTER);
 
         var dialog_args = {
             title	: sDialogTitle,
@@ -98,6 +241,8 @@ function() {
 
     } else { // show 'attach file' popup
         var sDialogTitle = "Attach file(s) from Seafile";
+        var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+        var seafile_libraries_url = seafile_service_url + '/api2/repos/';
         var seafile_zimlet = this;
 
         seafile_zimlet.pView = new DwtComposite(seafile_zimlet.getShell()); //creates an empty div as a child of main shell div
@@ -179,6 +324,11 @@ function() {
 
     username = jQuery.trim(jQuery('#seafile_login_dlg_username').val());
     password = jQuery.trim(jQuery('#seafile_login_dlg_password').val());
+
+    console.log(" >> username : "+username);
+    console.log(" >> password : "+username);
+    console.log(" >> url      : "+seafile_token_url);
+
     if (!username || !password) {
         alert('username or password is missing')
         return false;
