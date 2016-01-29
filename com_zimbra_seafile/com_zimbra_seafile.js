@@ -227,7 +227,7 @@ function() {
         jQuery.ajax({ // get or create file shared link
             url: seafile_share_link_url,
             type: 'PUT',
-            dataType: 'json',
+            dataType: 'text',
             data: {'p': path},
             beforeSend: function (request) {
                 request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
