@@ -3,7 +3,8 @@ from fabric.api import cd, run, env, local
 from fabric.decorators import hosts
 from fabric.operations import sudo
 
-@hosts('plt@192.168.1.159')
+HOST = 'plt@192.168.1.234'
+@hosts(HOST)
 @task
 def deploy(zimlet_name, dev='yes', restart='yes'):
     """Usage: fab deploy helloworld
@@ -12,7 +13,7 @@ def deploy(zimlet_name, dev='yes', restart='yes'):
         zimlet_path = '/opt/zimbra/zimlets-deployed/_dev/'
 
         # rsync zimlet folder
-        local('rsync -az --delete %s plt@192.168.1.159:/tmp/' % zimlet_name)
+        local('rsync -az --delete %s %s:/tmp/' % (zimlet_name, HOST))
 
         with cd(zimlet_path):
             sudo('chown -R zimbra:zimbra /tmp/%s' % zimlet_name, user='root')
@@ -23,7 +24,7 @@ def deploy(zimlet_name, dev='yes', restart='yes'):
         # prepare .zip bundle
         local("rm -rf %s.zip" % zimlet_name)
         local("cd %s && rm -rf *~ && zip -r %s * && mv %s.zip .. && cd .." % (zimlet_name, zimlet_name, zimlet_name))
-        local('scp %s.zip plt@192.168.1.159:/tmp/' % zimlet_name)
+        local('scp %s.zip %s:/tmp/' % (zimlet_name, HOST))
 
         with cd(zimlet_path):
             sudo('chown zimbra:zimbra /tmp/%s.zip' % zimlet_name, user='root')

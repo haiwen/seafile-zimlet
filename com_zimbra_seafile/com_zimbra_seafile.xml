@@ -1,6 +1,7 @@
 <zimlet name="com_zimbra_seafile" version="0.1" description="Zimbra seafile plugins">
-	<include>jstree.js</include>
-	<include>file-tree.js</include>
+        <include>jquery-1.12.0.min.js</include>
+        <include>jstree.js</include>
+        <include>file-tree.js</include>
 	<include>com_zimbra_seafile.js</include>
 	<include>templates/Tab.template.js</include>
 	<includeCSS>seafile.css</includeCSS>
