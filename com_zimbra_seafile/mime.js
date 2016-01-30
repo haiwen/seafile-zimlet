@@ -1,7 +1,7 @@
 /*
 
 Copyright (C) 2016  Ahmet Kucuk, Deltanoc Ltd.
-Copyright (C) 2016  SeaFile
+Copyright (C) 2016  Seafile
 
 Code base taken from : https://github.com/Zimbra-Community/owncloud-zimlet/issues | Barry de Graaff, 2015
 

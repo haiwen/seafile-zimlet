@@ -47,7 +47,7 @@ function() {
 };
 
 /**
-* This method adds handler for save Attachment to SeaFile
+* This method adds handler for save Attachment to Seafile
 *
 */
 SeafileZimlet.prototype.addAttachmentHandler = function(mime)
@@ -66,26 +66,26 @@ SeafileZimlet.prototype.addAttachmentHandler = function(mime)
     });
 
     for (var mimeType in ZmMimeTable._table) {
-        this._msgController._listView[viewType].addAttachmentLinkHandler(mimeType,"SeaFile",this.addSeaFileLink);
+        this._msgController._listView[viewType].addAttachmentLinkHandler(mimeType,"Seafile",this.addSeafileLink);
     }
 };
 
 /**
-* This method adds button for save Attachment to SeaFile
+* This method adds button for save Attachment to Seafile
 *
 */
-SeafileZimlet.prototype.addSeaFileLink = 
+SeafileZimlet.prototype.addSeafileLink = 
 function(attachment) {
     var html =
         "<a href='#' class='AttLink' style='text-decoration:underline;' " +
         "onClick=\"SeafileZimlet.prototype.saveAttachment('" + attachment.label + "','" + attachment.url + "')\">"+
-        "SeaFile" +
+        "Seafile" +
         "</a>";
     return html;
 };
 
 /**
-* This method saves Attachment to SeaFile
+* This method saves Attachment to Seafile
 *
 */
 SeafileZimlet.prototype.saveAttachment = 
