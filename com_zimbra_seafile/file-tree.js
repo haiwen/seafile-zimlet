@@ -1,4 +1,4 @@
-    $.jstree._themes = '/service/zimlet/com_zimbra_seafile/themes/';
+    $.jstree._themes = '/service/zimlet/_dev/com_zimbra_seafile/themes/'; // todo: remove _dev in production
 
     var FileTree = {
 

@@ -2,8 +2,8 @@
         <include>jquery-1.12.0.min.js</include>
         <include>jstree.js</include>
         <include>file-tree.js</include>
-	<include>com_zimbra_seafile.js</include>
-	<include>templates/Tab.template.js</include>
+        <include>com_zimbra_seafile.js</include>
+        <include>templates/Tab.template.js</include>
 	<includeCSS>seafile.css</includeCSS>
 	<handlerObject>com_zimbra_seafile_HandlerObject</handlerObject>
 	<dragSource type="ZmConv" />

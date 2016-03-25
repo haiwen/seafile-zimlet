@@ -23,10 +23,38 @@ SeafileZimlet.prototype.init =
 function() {
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
+    com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'] = this._zimletContext.getConfig("shib_connection_timeout");
 
     // this._simpleAppName = this.createApp("Seafile", "zimbraIcon", "Connect you Seafile profile");
     //this.doDrop();
-	
+
+    var seafile_zimlet = this;
+    var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+    var eventer = window[eventMethod];
+    var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+    // Listen to message from child window
+    eventer(messageEvent,function(e) {
+        var key = e.message ? "message" : "data";
+        var data = e[key];
+        if (data) {
+            // data format: "test.seafile@mail.fr@xxxxxxxxxxxxxxxxxx"
+            console.log(data);
+            seafile_zimlet.status('Shib SSO success', ZmStatusView.LEVEL_INFO);
+
+            /* close iframe, and use token to list libraries */
+            $('#seafile-shib-ifrm').remove();
+            clearTimeout(SeafileZimlet.timer);
+
+            var splits = JSON.parse(data).split('@');
+            var seafile_token = splits[splits.length - 1];
+            if (seafile_token && seafile_token.length == 40) {
+                // set to cookie, and open file chooser
+                createCookie('seafile_token', seafile_token, 1);
+                seafile_zimlet.showSeafileChooser();
+            }
+        }
+    },false);
+
 };
 
 function createCookie(name,value,days) {
@@ -68,37 +96,73 @@ function(menu, controller) {
                         new AjxListener(this, this.showSeafileChooser));
 };
 
+SeafileZimlet.prototype.status = function(text, type, timeout) {
+    var timeout = typeof timeout !== 'undefined' ?  timeout : 5;
+    var transitions = [ ZmToast.FADE_IN ];
+    transitions = transitions.concat(Array(timeout-2).fill(ZmToast.PAUSE)); // remove first and last two seconds
+    transitions.push(ZmToast.FADE_OUT);
+    appCtxt.getAppController().setStatusMsg(text, type, null, transitions);
+}; 
+
+SeafileZimlet._showSeafileLoginDialog =
+function() {
+    console.log('sso failed, remove ifrm, show login dialog');
+    this.status('Shibboleth SSO failed, you need to manually input your email/password', ZmStatusView.LEVEL_WARNING);
+
+    $('#seafile-shib-ifrm').remove();
+
+    var sDialogTitle = "Login to Seafile";
+    
+    this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
+    this.pView.getHtmlElement().innerHTML = this._createDialogLoginView(); // insert html to the dialogbox
+
+    var loginButtonId = Dwt.getNextId();
+    var loginButton = new DwtDialog_ButtonDescriptor(
+        loginButtonId, "Login", DwtDialog.ALIGN_RIGHT);
+
+    var dialog_args = {
+        title	: sDialogTitle,
+        view	: this.pView,
+        parent	: this.getShell(),
+        standardButtons : [DwtDialog.CANCEL_BUTTON],
+        extraButtons : [loginButton]
+    }
+
+    // pass the title, view & buttons information to create dialog box
+    this.pbDialog = new ZmDialog(dialog_args);
+    this.pbDialog.setButtonListener(DwtDialog.CANCEL_BUTTON, new AjxListener(this, this._cancelBtnListener));
+    this.pbDialog.setButtonListener(loginButtonId, new AjxListener(this, this._loginBtnListener));
+
+    this.pbDialog.popup(); //show the dialog
+}
+
 SeafileZimlet.prototype.showSeafileChooser=
 function() {
     var SeafileToken = readCookie("seafile_token");
-    if (SeafileToken == null) { // show login popup
-        var sDialogTitle = "Login to Seafile";
-	    
-        this.pView = new DwtComposite(this.getShell()); //creates an empty div as a child of main shell div
-        this.pView.getHtmlElement().innerHTML = this._createDialogLoginView(); // insert html to the dialogbox
+    var seafile_zimlet = this;
 
-        var loginButtonId = Dwt.getNextId();
-        var loginButton = new DwtDialog_ButtonDescriptor(
-                loginButtonId, "Login", DwtDialog.ALIGN_RIGHT);
+    if (SeafileToken == null) {
+        // Open iframe to shibboleth SSO, if connection is done in 10s,
+        // remove login window timer, and remove iframe; otherwise,
+        // remove that iframe, and show login dialog.
 
-        var dialog_args = {
-            title	: sDialogTitle,
-            view	: this.pView,
-            parent	: this.getShell(),
-            standardButtons : [DwtDialog.CANCEL_BUTTON],
-            extraButtons : [loginButton]
-        }
+        var shib_login_src = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] + '/shib-login/?next=/seahub/shib-success/';
+        var timeout = com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'];
 
-        // pass the title, view & buttons information to create dialog box
-        this.pbDialog = new ZmDialog(dialog_args);
-        this.pbDialog.setButtonListener(DwtDialog.CANCEL_BUTTON, new AjxListener(this, this._cancelBtnListener));
-        this.pbDialog.setButtonListener(loginButtonId, new AjxListener(this, this._loginBtnListener));
+        $('<iframe>', {
+            src: shib_login_src,
+            id:  'seafile-shib-ifrm',
+        }).appendTo('body');
+        console.log('append ifrm');
+        seafile_zimlet.status('Connecting to Shibboleth, please wait...', ZmStatusView.LEVEL_INFO, timeout);
 
-        this.pbDialog.popup(); //show the dialog
+        SeafileZimlet.timer = setTimeout(
+            $.proxy(SeafileZimlet._showSeafileLoginDialog, seafile_zimlet),
+            timeout*1000);
+        console.log('timer set in ' + timeout);
 
     } else { // show 'attach file' popup
         var sDialogTitle = "Attach file(s) from Seafile";
-        var seafile_zimlet = this;
 
         seafile_zimlet.pView = new DwtComposite(seafile_zimlet.getShell()); //creates an empty div as a child of main shell div
         seafile_zimlet.pView.setSize("400px", "300px"); // set width and height
