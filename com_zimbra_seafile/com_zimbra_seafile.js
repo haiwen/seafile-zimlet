@@ -39,7 +39,6 @@ function() {
         if (data) {
             // data format: "test.seafile@mail.fr@xxxxxxxxxxxxxxxxxx"
             console.log(data);
-            seafile_zimlet.status('Shib SSO success', ZmStatusView.LEVEL_INFO);
 
             /* close iframe, and use token to list libraries */
             $('#seafile-shib-ifrm').remove();
@@ -99,9 +98,16 @@ function(menu, controller) {
 SeafileZimlet.prototype.status = function(text, type, timeout) {
     var timeout = typeof timeout !== 'undefined' ?  timeout : 5;
     var transitions = [ ZmToast.FADE_IN ];
-    transitions = transitions.concat(Array(timeout-2).fill(ZmToast.PAUSE)); // remove first and last two seconds
+
+    // remove first and last two seconds
+    var tmp_arr = Array.apply(null, Array(timeout-2));
+    var pauses = tmp_arr.map(function (x) { return ZmToast.PAUSE });
+    transitions = transitions.concat(pauses);
+
     transitions.push(ZmToast.FADE_OUT);
     appCtxt.getAppController().setStatusMsg(text, type, null, transitions);
+
+    appCtxt.getAppController().statusView.nextStatus();
 }; 
 
 SeafileZimlet._showSeafileLoginDialog =
@@ -162,6 +168,8 @@ function() {
         console.log('timer set in ' + timeout);
 
     } else { // show 'attach file' popup
+        seafile_zimlet.status('Success', ZmStatusView.LEVEL_INFO);
+
         var sDialogTitle = "Attach file(s) from Seafile";
 
         seafile_zimlet.pView = new DwtComposite(seafile_zimlet.getShell()); //creates an empty div as a child of main shell div
