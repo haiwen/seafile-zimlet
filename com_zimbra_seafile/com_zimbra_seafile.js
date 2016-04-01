@@ -34,6 +34,14 @@ function() {
     var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
     // Listen to message from child window
     eventer(messageEvent,function(e) {
+        var tmp_anchor = $("<a />");
+        tmp_anchor.attr('href', com_zimbra_seafile_HandlerObject.settings['seafile_service_url']);
+
+        if (e.origin != tmp_anchor[0].protocol + '//' + tmp_anchor[0].hostname) {
+            console.log("Bad origin: " + e.origin);
+            return;
+        }
+
         var key = e.message ? "message" : "data";
         var data = e[key];
         if (data) {
