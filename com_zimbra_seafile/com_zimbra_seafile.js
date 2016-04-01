@@ -318,7 +318,7 @@ function() {
 
                 var composeView = appCtxt.getCurrentView();
                 var filename = HTMLescape(path.substr(path.lastIndexOf('/') + 1));
-                var attached_item = '<p>' + filename + ': ' + '<a href="' + shared_link + '">' + shared_link + '</a></p>';
+                var attached_item = '<div style="width:180px; padding:5px 10px; border:1px solid #ddd; background:#f8f8f8; margin:10px 0;">' + '<img src="' + seafile_file_icon.getFileIconUrl(filename) + '" alt="File icon" width="80" />' + '<a href="' + shared_link + '" style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:none;" title="' + filename + '">' + filename + '</a></div>';
                 composeView.getHtmlEditor().setContent(composeView.getHtmlEditor().getContent() + attached_item);
 
                 seafile_zimlet.pbDialog.popdown();
