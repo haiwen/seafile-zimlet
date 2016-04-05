@@ -227,7 +227,6 @@ function(name,url){
 SeafileZimlet.prototype._okBtnListener = 
 function(obj) {
     this._dialog.popdown(); // close the dialog
->>>>>>> 9ce97876a70748e1f85644421affde5c37e5e3aa
 };
 
 function createCookie(name,value,days) {
@@ -430,7 +429,7 @@ function() {
     password = jQuery.trim(jQuery('#seafile_login_dlg_password').val());
 
     console.log(" >> username : "+username);
-    console.log(" >> password : "+username);
+    console.log(" >> password : "+password);
     console.log(" >> url      : "+seafile_token_url);
 
     if (!username || !password) {
