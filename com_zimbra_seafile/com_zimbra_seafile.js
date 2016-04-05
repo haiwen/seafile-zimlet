@@ -1,6 +1,21 @@
-/* 
- *   Zimbra Seafile
- *   Copyright (C) 2016 
+/**
+ * @license
+ * Zimbra Seafile Zimlet
+ *
+ * Copyright 2016 Deltanoc Ltd.
+ * Copyright 2016 Seafile Ltd. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 function com_zimbra_seafile_HandlerObject() {
@@ -17,7 +32,7 @@ var SeafileZimlet = com_zimbra_seafile_HandlerObject;
 
 /**
 * This method gets called by the Zimlet framework when the zimlet loads.
-*  
+*
 */
 SeafileZimlet.prototype.init =
 function() {
@@ -25,8 +40,6 @@ function() {
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
     com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'] = this._zimletContext.getConfig("shib_connection_timeout");
 
-    // this._simpleAppName = this.createApp("Seafile", "zimbraIcon", "Connect you Seafile profile");
-    //this.doDrop();
 
     var seafile_zimlet = this;
     var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
@@ -62,6 +75,159 @@ function() {
         }
     },false);
 
+    var SeafileToken = readCookie("seafile_token");
+    if (appCtxt.get(ZmSetting.MAIL_ENABLED) && SeafileToken != null) {
+        AjxPackage.require({name:"MailCore", callback:new AjxCallback(this, this.addAttachmentHandler)});
+    }
+
+};
+
+/**
+* This method adds handler for save Attachment to Seafile
+*
+*/
+SeafileZimlet.prototype.addAttachmentHandler = function(mime)
+{
+    this._msgController = AjxDispatcher.run("GetMsgController");
+    var viewType = appCtxt.getViewTypeFromId(ZmId.VIEW_MSG);
+    this._msgController._initializeView(viewType);
+
+    //Load 1000 mime-types
+    SeafileZimlet.prototype.mime();
+    SeafileZimlet.mime.forEach(function(mime) 
+    {
+        var MISSMIME = 'SeafileZimlet'+mime.replace("/","_");
+        ZmMimeTable.MISSMIME=mime;
+        ZmMimeTable._table[ZmMimeTable.MISSMIME]={desc:ZmMsg.unknownBinaryType,image:"UnknownDoc",imageLarge:"UnknownDoc_48"};
+    });
+
+    for (var mimeType in ZmMimeTable._table) {
+        this._msgController._listView[viewType].addAttachmentLinkHandler(mimeType,"Seafile",this.addSeafileLink);
+    }
+};
+
+/**
+* This method adds button for save Attachment to Seafile
+*
+*/
+SeafileZimlet.prototype.addSeafileLink = 
+function(attachment) {
+    var html =
+        "<a href='#' class='AttLink' style='text-decoration:underline;' " +
+        "onClick=\"SeafileZimlet.prototype.saveAttachment('" + attachment.label + "','" + attachment.url + "')\">"+
+        "Seafile" +
+        "</a>";
+    return html;
+};
+
+/**
+* This method saves Attachment to Seafile
+*
+*/
+SeafileZimlet.prototype.saveAttachment = 
+function(name,url){
+
+    var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+    var seafile_libraries_url = seafile_service_url + '/api2/repos/';
+    var seafile_zimlet = this;
+    var msg = "<h3>Select your lib.</h3></br>";
+
+    jQuery.ajax({ // list libraries
+        url: seafile_libraries_url,
+        type: 'GET',
+        dataType: 'json',
+
+        beforeSend: function (request) {
+            request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+        },
+
+        success: function(data){
+            jQuery.each(data, function(idx, val) {
+                if (val.type == 'repo') {
+                    // only list owned repos
+                    msg += "<div><span><img src=\"/service/zimlet/_dev/com_zimbra_seafile/lib.png\"><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" + val.name + "</a></span></div>";
+                }
+            });
+
+            this._dialog =  null;
+            var style = DwtMessageDialog.INFO_STYLE; //show info status by default
+
+            var sDialogTitle = "Seafile";
+            var sStatusMsg = "Login";
+            this._dialog = appCtxt.getMsgDialog(); // returns DwtMessageDialog
+
+            // set the button close
+            this._dialog.setButtonListener(DwtDialog.OK_BUTTON, new AjxListener(this, SeafileZimlet.prototype._okBtnListener));       
+
+            this._dialog.reset(); // reset dialog
+            this._dialog.setMessage(msg, style);
+            this._dialog.popup();
+
+
+            jQuery('.js-seafile-lib').click(function() {
+                var repo_id = jQuery(this).data('rid');
+                var seafile_uploads_url = seafile_service_url + '/api2/repos/' + repo_id + '/upload-link/';
+
+                var xmlHttp = null;   
+                xmlHttp = new XMLHttpRequest();
+                xmlHttp.open( "GET", url, true );        
+                xmlHttp.responseType = "blob";
+                xmlHttp.send( null );
+
+                jQuery.ajax({ 
+                    url: seafile_uploads_url,
+                    type: 'GET',
+                    dataType: 'json',
+                    beforeSend: function (request) {
+                        request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                    },
+                    success: function(data) {
+
+                        var seafile_upload_url_post = data;
+                        // Below code added to fix http-https mixed content error
+                        seafile_upload_url_post = seafile_upload_url_post.replace("http","https").replace("8082","8182");
+                        var fd = new FormData();
+                        fd.append('filename', name);
+                        fd.append('file', xmlHttp.response, name);
+                        fd.append('parent_dir','/');
+
+                        jQuery.ajax({
+                            url: seafile_upload_url_post, 
+                            type: 'POST',
+                            processData: false,
+                            contentType: false,
+                            data: fd,
+                            beforeSend: function (request) {
+                                request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                            },
+                            success: function(data) {
+                                console.log("UPLOAD SUCCESS");
+                            },
+                            error: function(response) {
+                                alert('Unexpected Error');
+                                console.log("Hata : "+JSON.stringify(response));
+                            }
+                        });
+                    },
+                    error: function(xhr, textStatus, errorThrown) {
+                        alert('List seafile dir failed.');
+                        console.log(xhr.responseText);
+                    }
+                });
+
+            });
+        },
+            error: function(xhr, textStatus, errorThrown) {
+                alert('List seafile libraries failed.');
+                console.log(xhr.responseText);
+            }
+        });
+}
+
+SeafileZimlet.prototype._okBtnListener = 
+function(obj) {
+    this._dialog.popdown(); // close the dialog
+>>>>>>> 9ce97876a70748e1f85644421affde5c37e5e3aa
 };
 
 function createCookie(name,value,days) {
@@ -80,7 +246,7 @@ function readCookie(name) {
     for(var i=0;i < ca.length;i++) {
         var c = ca[i];
         while (c.charAt(0)==' ') c = c.substring(1,c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
     }
     return null;
 }
@@ -132,7 +298,7 @@ function() {
 
     var loginButtonId = Dwt.getNextId();
     var loginButton = new DwtDialog_ButtonDescriptor(
-        loginButtonId, "Login", DwtDialog.ALIGN_RIGHT);
+        loginButtonId, "Login", DwtDialog.ALIGN_CENTER);
 
     var dialog_args = {
         title	: sDialogTitle,
@@ -179,6 +345,9 @@ function() {
         seafile_zimlet.status('Success', ZmStatusView.LEVEL_INFO);
 
         var sDialogTitle = "Attach file(s) from Seafile";
+        var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+        var seafile_libraries_url = seafile_service_url + '/api2/repos/';
+        var seafile_zimlet = this;
 
         seafile_zimlet.pView = new DwtComposite(seafile_zimlet.getShell()); //creates an empty div as a child of main shell div
         seafile_zimlet.pView.setSize("400px", "300px"); // set width and height
@@ -259,6 +428,11 @@ function() {
 
     username = jQuery.trim(jQuery('#seafile_login_dlg_username').val());
     password = jQuery.trim(jQuery('#seafile_login_dlg_password').val());
+
+    console.log(" >> username : "+username);
+    console.log(" >> password : "+username);
+    console.log(" >> url      : "+seafile_token_url);
+
     if (!username || !password) {
         alert('username or password is missing')
         return false;
@@ -349,44 +523,44 @@ function() {
 
 SeafileZimlet.prototype.appActive =
 function(appName, active) {
-	
-	switch (appName) {
-		case this._simpleAppName: {
-		
-			var app = appCtxt.getApp(appName); // get access to ZmZimletApp
+    
+    switch (appName) {
+        case this._simpleAppName: {
+        
+            var app = appCtxt.getApp(appName); // get access to ZmZimletApp
 
-			break;
-		}
-	}
-	// do something
+            break;
+        }
+    }
+    // do something
 };
 
 /**
  * This method gets called by the Zimlet framework when the application is opened for the first time.
  *  
- * @param	{String}	appName		the application name		
+ * @param    {String}    appName        the application name        
  */
 
 SeafileZimlet.prototype.appLaunch =
 function(appName){
-	switch (appName) {
-		case this._simpleAppName: {
-			// do something
-			var app = appCtxt.getApp(appName); // get access to ZmZimletApp
-			var content = this._createTabView();
-			app.setContent(content); // write HTML to app
-			break;
-		}
-	}
+    switch (appName) {
+        case this._simpleAppName: {
+            // do something
+            var app = appCtxt.getApp(appName); // get access to ZmZimletApp
+            var content = this._createTabView();
+            app.setContent(content); // write HTML to app
+            break;
+        }
+    }
 };
 
 /**
  * Creates the tab view using the template.
  * 
- * @return	{String}	the tab HTML content
+ * @return    {String}    the tab HTML content
  */
 
 SeafileZimlet.prototype._createTabView =
 function() {
-	return	AjxTemplate.expand("com_zimbra_seafile.templates.Tab#Main");		
+    return    AjxTemplate.expand("com_zimbra_seafile.templates.Tab#Main");        
 };
