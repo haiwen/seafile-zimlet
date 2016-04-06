@@ -40,7 +40,6 @@ function() {
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
     com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'] = this._zimletContext.getConfig("shib_connection_timeout");
 
-
     var seafile_zimlet = this;
     var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
     var eventer = window[eventMethod];
