@@ -36,10 +36,11 @@ var SeafileZimlet = com_zimbra_seafile_HandlerObject;
 */
 SeafileZimlet.prototype.init =
 function() {
+    console.log('seafile zimlet init');
+
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
     com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'] = this._zimletContext.getConfig("shib_connection_timeout");
-
 
     var seafile_zimlet = this;
     var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
@@ -88,6 +89,7 @@ function() {
 */
 SeafileZimlet.prototype.addAttachmentHandler = function(mime)
 {
+    console.log('add attachment link');
     this._msgController = AjxDispatcher.run("GetMsgController");
     var viewType = appCtxt.getViewTypeFromId(ZmId.VIEW_MSG);
     this._msgController._initializeView(viewType);
@@ -126,102 +128,65 @@ function(attachment) {
 */
 SeafileZimlet.prototype.saveAttachment = 
 function(name,url){
+    console.log("save name, url:" + name + url);
+    var seafile_zimlet = this;
+    seafile_zimlet.status('Loading...', ZmStatusView.LEVEL_INFO);
 
+
+    var sDialogTitle = "Save attachment to:";
     var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
     var seafile_libraries_url = seafile_service_url + '/api2/repos/';
-    var seafile_zimlet = this;
-    var msg = "<h3>Select your lib.</h3></br>";
 
-    jQuery.ajax({ // list libraries
+    seafile_zimlet.pView = new DwtComposite(appCtxt.getShell()); //creates an empty div as a child of main shell div
+    seafile_zimlet.pView.setSize("400px", "300px"); // set width and height
+    seafile_zimlet.pView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
+
+    var $fileTreeContainer = $(seafile_zimlet.pView.getHtmlElement());
+
+    var attachButtonId = Dwt.getNextId();
+    var attachButton = new DwtDialog_ButtonDescriptor(
+        attachButtonId, "Save", DwtDialog.ALIGN_RIGHT);
+
+    seafile_zimlet.pbDialog = new ZmDialog({
+        title: sDialogTitle,
+        view: seafile_zimlet.pView,
+        parent: appCtxt.getShell(),
+        standardButtons: [DwtDialog.CANCEL_BUTTON],
+        extraButtons: [attachButton],
+        disposeOnPopDown:true
+    });
+    seafile_zimlet.pbDialog.setButtonListener(DwtDialog.CANCEL_BUTTON, new AjxListener(seafile_zimlet, seafile_zimlet._cancelBtnListener));
+   seafile_zimlet.pbDialog.setButtonListener(attachButtonId, new AjxListener(seafile_zimlet, seafile_zimlet._saveBtnListener, [name, url]));
+
+    var seafile_service_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'];
+    var seafile_libraries_url = seafile_service_url + '/api2/repos/?type=mine';
+    jQuery.ajax({
         url: seafile_libraries_url,
         type: 'GET',
         dataType: 'json',
-
-        beforeSend: function (request) {
+        beforeSend: function(request) {
             request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
         },
+        success: function(data) {
+            seafile_zimlet.status('Success', ZmStatusView.LEVEL_INFO);
 
-        success: function(data){
-            jQuery.each(data, function(idx, val) {
-                if (val.type == 'repo') {
-                    // only list owned repos
-                    msg += "<div><span><img src=\"/service/zimlet/_dev/com_zimbra_seafile/lib.png\"><a href='#' class='js-seafile-lib' data-rid='" + val.id + "' style='text-decoration:underline;' >" + val.name + "</a></span></div>";
+            var repos = FileTree.formatRepoData(data);
+            FileTree.renderDirTree($fileTreeContainer, repos, {
+                beforeSend: function(request) {
+                    request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                },
+                getUrl: function(repo_id, path) {
+                    return seafile_service_url + '/api2/repos/' + repo_id + '/dir/?p=' + encodeURIComponent(path);
                 }
             });
 
-            this._dialog =  null;
-            var style = DwtMessageDialog.INFO_STYLE; //show info status by default
-
-            var sDialogTitle = "Seafile";
-            var sStatusMsg = "Login";
-            this._dialog = appCtxt.getMsgDialog(); // returns DwtMessageDialog
-
-            // set the button close
-            this._dialog.setButtonListener(DwtDialog.OK_BUTTON, new AjxListener(this, SeafileZimlet.prototype._okBtnListener));       
-
-            this._dialog.reset(); // reset dialog
-            this._dialog.setMessage(msg, style);
-            this._dialog.popup();
-
-
-            jQuery('.js-seafile-lib').click(function() {
-                var repo_id = jQuery(this).data('rid');
-                var seafile_uploads_url = seafile_service_url + '/api2/repos/' + repo_id + '/upload-link/';
-
-                var xmlHttp = null;   
-                xmlHttp = new XMLHttpRequest();
-                xmlHttp.open( "GET", url, true );        
-                xmlHttp.responseType = "blob";
-                xmlHttp.send( null );
-
-                jQuery.ajax({ 
-                    url: seafile_uploads_url,
-                    type: 'GET',
-                    dataType: 'json',
-                    beforeSend: function (request) {
-                        request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
-                    },
-                    success: function(data) {
-
-                        var seafile_upload_url_post = data;
-                        // Below code added to fix http-https mixed content error
-                        seafile_upload_url_post = seafile_upload_url_post.replace("http","https").replace("8082","8182");
-                        var fd = new FormData();
-                        fd.append('filename', name);
-                        fd.append('file', xmlHttp.response, name);
-                        fd.append('parent_dir','/');
-
-                        jQuery.ajax({
-                            url: seafile_upload_url_post, 
-                            type: 'POST',
-                            processData: false,
-                            contentType: false,
-                            data: fd,
-                            beforeSend: function (request) {
-                                request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
-                            },
-                            success: function(data) {
-                                console.log("UPLOAD SUCCESS");
-                            },
-                            error: function(response) {
-                                alert('Unexpected Error');
-                                console.log("Hata : "+JSON.stringify(response));
-                            }
-                        });
-                    },
-                    error: function(xhr, textStatus, errorThrown) {
-                        alert('List seafile dir failed.');
-                        console.log(xhr.responseText);
-                    }
-                });
-
-            });
+            seafile_zimlet.pbDialog.popup(); //show the dialog
         },
-            error: function(xhr, textStatus, errorThrown) {
-                alert('List seafile libraries failed.');
-                console.log(xhr.responseText);
-            }
-        });
+        error: function(xhr, textStatus, errorThrown) {
+            $fileTreeContainer.html('<p style="text-align:center;color:red;margin-top:20px;">Failed to list seafile libraries.</p>');
+            seafile_zimlet.pbDialog.popup(); //show the dialog
+        }
+    });
 }
 
 SeafileZimlet.prototype._okBtnListener = 
@@ -453,6 +418,77 @@ function() {
         }
     });
 };
+
+/**
+ * Save attachement file to Seafile
+ *
+*/
+SeafileZimlet.prototype._saveBtnListener =
+function(file_name, file_url) {
+    var seafile_zimlet = this;
+
+    var $fileTreeContainer = $(seafile_zimlet.pView.getHtmlElement());
+    var $parent = $('.jstree-clicked', $fileTreeContainer).parents('[root_node=true]');
+    var path = $parent.attr('path');
+    var repo_id = $parent.attr('repo_id');
+
+    var seafile_uploads_url = 'https://dev2.seafile.com/seahub/api2/repos/' + repo_id + '/upload-link/';
+
+    seafile_zimlet.status('Fetch upload url...', ZmStatusView.LEVEL_INFO);
+    $.ajax({
+        url: seafile_uploads_url,
+        type: 'GET',
+        dataType: 'json',
+        beforeSend: function(request) {
+            request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+        },
+        success: function(data) {
+            seafile_zimlet.status('Fetch attachment...', ZmStatusView.LEVEL_INFO);
+
+            var seafile_uploads_url_post = data;
+
+            var xmlHttp = null;   
+            xmlHttp = new XMLHttpRequest();
+            xmlHttp.open( "GET", file_url, true );
+            xmlHttp.responseType = "blob";
+            xmlHttp.send( null );
+
+            xmlHttp.onload = function(e) {
+                seafile_zimlet.pbDialog.popdown(); // close the dialog
+                seafile_zimlet.status('Start uploading...', ZmStatusView.LEVEL_INFO);
+
+                var fd = new FormData();
+                fd.append('filename', file_name);
+                fd.append('file', xmlHttp.response, file_name);
+                fd.append('parent_dir','/');
+
+                $.ajax({
+                    url: seafile_uploads_url_post,
+                    type: 'POST',
+
+                    dataType: 'html', // specify as plain text, otherwise jquery will raise JSON parse error
+                    processData: false,
+                    contentType: false,
+                    data: fd,
+                    beforeSend: function(request) {
+                        request.setRequestHeader("Authorization", "Token " + readCookie("seafile_token"));
+                    },
+                    success: function(data) {
+                        seafile_zimlet.status('Upload success', ZmStatusView.LEVEL_INFO);
+                    },
+                    error: function(response) {
+                        console.log(response);
+                        seafile_zimlet.status('Upload error', ZmStatusView.LEVEL_WARNING);
+                    }
+                });
+            }
+
+        },
+        error: function(xhr, textStatus, errorThrown) {
+            console.log('err:' + xhr.responseText);
+        }
+    });
+}
 
 /**
  * The "attach" button listener.
