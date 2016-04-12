@@ -9,7 +9,7 @@
             for (var i = 0, len = data.length; i < len; i++) {
                 repo = {
                     'data': data[i].name,
-                    'attr': {'repo_id': data[i].id, 'root_node': true},
+                    'attr': {'repo_id': data[i].id, path:'/', 'root_node': true},
                     'state': 'closed'
                 }
                 repos.push(repo);
@@ -102,6 +102,78 @@
                 },
                 'plugins': ['themes', 'json_data', 'ui', 'checkbox']
             });
+        },
+
+        renderDirTree: function(container, repo_data, options) {
+            container
+                .delegate('.jstree-closed', 'dblclick', function(e) {
+                    container.jstree('open_node', $(this));
+                    $(this).find('a').removeClass('jstree-clicked');
+                })
+                .bind('before.jstree', function(e, data) {
+                    if (data.func === 'select_node') { // ensure only one selected dir display in the popup
+                        $('.jstree-clicked').removeClass('jstree-clicked');
+                    }
+                })
+                .bind('select_node.jstree', function(e, data) {
+                    var path, repo_id;
+                    var path_array = data.inst.get_path(data.rslt.obj);
+                    if (path_array.length == 1) {
+                        path = '/';
+                        repo_id = data.rslt.obj.attr('repo_id');
+                        data.rslt.obj.attr('path', path);
+                    } else {
+                        repo_id = data.rslt.obj.parents('[root_node=true]').attr('repo_id');
+                        path_array.shift();
+                        path = '/' + path_array.join('/') + '/';
+                        data.rslt.obj.parents('[root_node=true]').attr('path', path);
+                    }
+                })
+                .jstree({
+                    'json_data': {
+                        'data': repo_data,
+                        'ajax': {
+                            'url': function(data) {
+                                var path = this.get_path(data);
+                                var repo_id;
+                                if (path.length == 1) {
+                                    path = '/';
+                                    repo_id = data.attr('repo_id');
+                                } else {
+                                    var root_node = data.parents('[root_node=true]');
+                                    repo_id = root_node.attr('repo_id');
+                                    path.shift();
+                                    path = '/' + path.join('/') + '/';
+                                }
+                                return options.getUrl(repo_id, path);
+                            },
+                            'beforeSend': options.beforeSend,
+                            'success': function(data) {
+                                var items = [];
+                                var o, item;
+                                for (var i = 0, len = data.length; i < len; i++) {
+                                    o = data[i];
+                                    if (o.type == 'dir') {
+                                        item = {
+                                            'data': o.name,
+                                            'attr': { 'type': o.type },
+                                            'state': 'closed'
+                                        };
+                                        items.push(item);
+                                    }
+                                }
+                                return items;
+                            }
+                        }
+                    },
+                    'core': {
+                        'animation': 100
+                    },
+                    'themes': {
+                        'theme':'classic'
+                    },
+                    'plugins': ['themes', 'json_data', 'ui']
+                });
         }
 
     };
