@@ -83,7 +83,7 @@ function addShibSSOMsgListener(seafile_zimlet, funcOnSuccess) {
 }
 
 function seafileShibLogin(seafile_zimlet, funcOnSuccess) {
-    var shib_login_src = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] + '/shib-login/?next=/seahub/shib-success/';
+    var shib_login_src = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] + '/shib-login/?next=/shib-success/'; // todo: handle non-root seafile service
     var timeout = com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'];
 
     $('<iframe>', {
@@ -556,7 +556,7 @@ function(file_name, file_url) {
     var path = $parent.attr('path');
     var repo_id = $parent.attr('repo_id');
 
-    var seafile_uploads_url = 'https://dev2.seafile.com/seahub/api2/repos/' + repo_id + '/upload-link/';
+    var seafile_uploads_url = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] + '/api2/repos/' + repo_id + '/upload-link/';
 
     seafile_zimlet.status('Fetching upload url...', ZmStatusView.LEVEL_INFO);
     $.ajax({
