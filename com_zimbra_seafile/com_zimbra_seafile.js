@@ -124,6 +124,7 @@ function() {
     // add config values
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
+    com_zimbra_seafile_HandlerObject.settings['zimbra_service_url'] = this._zimletContext.getConfig("zimbra_service_url");
     com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'] = this._zimletContext.getConfig("shib_connection_timeout");
 
     // get seafile auth token from Shibboleth
@@ -409,7 +410,8 @@ function() {
 
                 var composeView = appCtxt.getCurrentView();
                 var filename = HTMLescape(path.substr(path.lastIndexOf('/') + 1));
-                var attached_item = '<div style="width:180px; padding:5px 10px; border:1px solid #ddd; background:#f8f8f8; margin:10px 0;">' + '<img src="' + seafile_file_icon.getFileIconUrl(filename) + '" alt="File icon" width="80" />' + '<a href="' + shared_link + '" style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:none;" title="' + filename + '">' + filename + '</a></div>';
+                var zimbra_service_url = com_zimbra_seafile_HandlerObject.settings['zimbra_service_url'];
+                var attached_item = '<div style="width:180px; padding:5px 10px; border:1px solid #ddd; background:#f8f8f8; margin:10px 0;">' + '<img src="' + zimbra_service_url + seafile_file_icon.getFileIconUrl(filename) + '" alt="File icon" width="80" />' + '<a href="' + shared_link + '" style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:none;" title="' + filename + '">' + filename + '</a></div>';
                 composeView.getHtmlEditor().setContent(composeView.getHtmlEditor().getContent() + attached_item);
 
                 seafile_zimlet.pbDialog.popdown();

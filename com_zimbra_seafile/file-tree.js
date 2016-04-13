@@ -7,6 +7,8 @@
         formatRepoData: function(data) {
             var repos = [], repo;
             for (var i = 0, len = data.length; i < len; i++) {
+                if (data[i].encrypted) continue;
+
                 repo = {
                     'data': data[i].name,
                     'attr': {'repo_id': data[i].id, path:'/', 'root_node': true},

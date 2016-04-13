@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zimletConfig name="com_zimbra_seafile" version="1.0">
     <global>
-        <property name="seafile_service_url">https://192.168.1.1</property>
-        <property name="seafile_static_url">/service/zimlet/_dev/com_zimbra_seafile/</property>
+        <property name="zimbra_service_url">https://192.168.1.234</property>
+        <property name="seafile_service_url">https://192.168.1.100</property>
         <property name="shib_connection_timeout">10</property> <!--in seconds-->
     </global>
 </zimletConfig>
