@@ -3,7 +3,7 @@
     <global>
         <property name="zimbra_service_url">https://192.168.1.234</property>
         <property name="seafile_service_url">https://192.168.1.100</property>
-        <property name="shib_connection_timeout">10</property> <!--in seconds-->
+        <property name="shibboleth_login">true</property>
     </global>
 </zimletConfig>
 

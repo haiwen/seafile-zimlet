@@ -69,7 +69,9 @@ function addShibSSOMsgListener(seafile_zimlet, funcOnSuccess) {
 
             /* close iframe, and use token to list libraries */
             $('#seafile-shib-ifrm').remove();
-            clearTimeout(SeafileZimlet.timer);
+            console.log('remove #seafile-shib-ifrm');
+            seafile_zimlet.pbDialog.popdown(); //hide the dialog
+            console.log('close iframe dialog')
 
             var splits = JSON.parse(data).split('@');
             var seafile_token = splits[splits.length - 1];
@@ -83,20 +85,25 @@ function addShibSSOMsgListener(seafile_zimlet, funcOnSuccess) {
 }
 
 function seafileShibLogin(seafile_zimlet, funcOnSuccess) {
+    seafile_zimlet.iframeView = new DwtComposite(appCtxt.getShell()); //creates an empty div as a child of main shell div
+    seafile_zimlet.iframeView.setSize("600", "450"); // set width and height
+    seafile_zimlet.iframeView.getHtmlElement().style.overflow = "auto"; // adds scrollbar
+
     var shib_login_src = com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] + '/shib-login/?next=/shib-success/'; // todo: handle non-root seafile service
-    var timeout = com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'];
 
     $('<iframe>', {
         src: shib_login_src,
         id:  'seafile-shib-ifrm',
-    }).appendTo('body');
+        sandbox: 'allow-same-origin allow-forms allow-scripts', // iframe sandbox trick http://www.html5rocks.com/en/tutorials/security/sandboxed-iframes/
+        width: '600',
+        height: '450'
+    }).appendTo(seafile_zimlet.iframeView.getHtmlElement());
     console.log('append ifrm');
-    seafile_zimlet.status('Connecting, please wait...', ZmStatusView.LEVEL_INFO, timeout);
+    
+    // pass the title, view & buttons information to create dialog box
+    seafile_zimlet.pbDialog = new ZmDialog({view:seafile_zimlet.iframeView, parent:appCtxt.getShell(), standardButtons:[DwtDialog.DISMISS_BUTTON]});
 
-    SeafileZimlet.timer = setTimeout(
-        $.proxy(SeafileZimlet._showSeafileLoginDialog, seafile_zimlet, [funcOnSuccess]),
-        timeout*1000);
-    console.log('timer set in ' + timeout);
+    seafile_zimlet.pbDialog.popup(); //show the dialog
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -125,10 +132,7 @@ function() {
     com_zimbra_seafile_HandlerObject.version=this._zimletContext.version;
     com_zimbra_seafile_HandlerObject.settings['seafile_service_url'] = this._zimletContext.getConfig("seafile_service_url");
     com_zimbra_seafile_HandlerObject.settings['zimbra_service_url'] = this._zimletContext.getConfig("zimbra_service_url");
-    com_zimbra_seafile_HandlerObject.settings['shib_connection_timeout'] = this._zimletContext.getConfig("shib_connection_timeout");
-
-    // get seafile auth token from Shibboleth
-
+    com_zimbra_seafile_HandlerObject.settings['shibboleth_login'] = this._zimletContext.getConfig("shibboleth_login");
 
     // save attachment to seafile
     if (appCtxt.get(ZmSetting.MAIL_ENABLED)) {
@@ -224,12 +228,12 @@ function() {
     var seafile_zimlet = this;
 
     if (SeafileToken == null) {
-        // Open iframe to shibboleth SSO, if connection is done in 10s,
-        // remove login window timer, and remove iframe; otherwise,
-        // remove that iframe, and show login dialog.
-
-        addShibSSOMsgListener(seafile_zimlet, 'showSeafileChooser');
-        seafileShibLogin(seafile_zimlet, 'showSeafileChooser');
+        if (com_zimbra_seafile_HandlerObject.settings['shibboleth_login'] == 'true') {
+            addShibSSOMsgListener(seafile_zimlet, 'showSeafileChooser');
+            seafileShibLogin(seafile_zimlet, 'showSeafileChooser');
+        } else {
+            seafile_zimlet._showSeafileLoginDialog('showSeafileChooser');
+        }
 
     } else { // show 'attach file' popup
         seafile_zimlet.status('Success', ZmStatusView.LEVEL_INFO);
@@ -288,13 +292,8 @@ function() {
     }
 };
 
-SeafileZimlet._showSeafileLoginDialog =
+SeafileZimlet.prototype._showSeafileLoginDialog =
 function(loginSuccessFunc) {
-    console.log('sso failed, remove ifrm, show login dialog');
-    this.status('SSO connection failed, you need to manually input your email/password', ZmStatusView.LEVEL_WARNING);
-
-    $('#seafile-shib-ifrm').remove();
-
     var sDialogTitle = "Login to Seafile";
     
     this.pView = new DwtComposite(appCtxt.getShell()); //creates an empty div as a child of main shell div
@@ -481,12 +480,12 @@ function(name,url){
     var seafile_zimlet = this;
 
     if (SeafileToken == null) {
-        // Open iframe to shibboleth SSO, if connection is done in 10s,
-        // remove login window timer, and remove iframe; otherwise,
-        // remove that iframe, and show login dialog.
-
-        addShibSSOMsgListener(seafile_zimlet, 'showAttachementSaveDlg');
-        seafileShibLogin(seafile_zimlet, 'showAttachementSaveDlg');
+        if (com_zimbra_seafile_HandlerObject.settings['shibboleth_login'] == 'true') {
+            addShibSSOMsgListener(seafile_zimlet, 'showAttachementSaveDlg');
+            seafileShibLogin(seafile_zimlet, 'showAttachementSaveDlg');
+        } else {
+            seafile_zimlet._showSeafileLoginDialog('showAttachementSaveDlg');
+        }
 
     } else { // show 'attach file' popup
     
