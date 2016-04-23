@@ -42,7 +42,7 @@ var seafile_file_icon = {
 
         getFileIconUrl: function(filename) {
             var file_ext;
-            var url_base = '/service/zimlet/_dev/com_zimbra_seafile/'; // todo: remove '_dev' in     production
+            var url_base = '/service/zimlet/com_zimbra_seafile/';
             if (filename.lastIndexOf('.') == -1) {
                 return url_base + "file_icon/" + this.FILEEXT_ICON_MAP['default'];
             } else {
