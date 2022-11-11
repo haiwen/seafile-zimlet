@@ -4,7 +4,7 @@ Enable CORS in Nginx/Apache if Seafile service and Zimbra Web Collaboration Suit
 
 Following is a sample wide open CORS configuration for Nginx.
 
-Important: For production enviroment, please replace the * in lines `add_header 'Access-Control-Allow-Origin' '*';` with your Seafile origin, like https://192.168.1.106 or https://myseafile.domain.com
+Important: For production enviroment, please replace the * in lines `add_header 'Access-Control-Allow-Origin' '*';` with your Seafile origin, like https://192.0.2.1 or https://myseafile.example.com
 
 sites-enabled/seafile-fastcgi.conf
 ```
